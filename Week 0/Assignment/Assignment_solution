@@ -1,0 +1,84 @@
+import time # to time the execution
+import numpy as np
+import matplotlib.pyplot as plt
+
+def load_data(data_path):
+   File_data= np.loadtxt(data_path, dtype = float, delimiter=',').reshape(-1, 2)
+   return File_data
+
+def initialise_centers(data, K, init_centers=None):
+    if init_centers is None:
+        centers = data[np.random.choice(data.shape[0], size=K, replace=False)]  
+    else:
+        centers=np.array(init_centers)
+    return centers
+
+def initialise_labels(data):
+    ones = np.ones((1, len(data)))
+    return ones
+
+def calculate_distances(data, centers):
+    distances = np.zeros((len(data), len(centers)))
+    for i in range(len(data)):  
+        for j in range(len(centers)):  
+            distances[i, j] = np.sqrt(np.sum((data[i, :] - centers[j, :])**2))
+    
+    return distances
+
+def update_labels(distances):
+    newlabel=np.argmin(distances,axis=1)
+    return newlabel
+
+def update_centers(data, labels, K):
+   new_centres=[]
+   for i in range(K):
+      arr=np.where(labels==i)[0]
+      mean_cluster=np.mean(data[arr], axis=0)
+      new_centres.append(mean_cluster)
+   return np.array(new_centres)
+
+def check_termination(labels1, labels2):
+    if np.array_equal(labels1, labels2) :
+        return True
+    return False
+
+def kmeans(data_path:str, K:int, init_centers):
+    data = load_data(data_path)    
+    centers = initialise_centers(data, K, init_centers)
+    labels = initialise_labels(data)
+
+    start_time = time.time() # Time stamp 
+
+    while True:
+        distances = calculate_distances(data, centers)
+        labels_new = update_labels(distances)
+        centers = update_centers(data, labels_new, K)
+        if check_termination(labels, labels_new): break
+        else: labels = labels_new
+ 
+    end_time = time.time() # Time stamp after the algorithm ends
+    return centers, labels, end_time - start_time 
+
+def visualise(data_path, labels, centers):
+    points=load_data(data_path)
+    
+    plt.scatter(points[:,0], points[:,1], color="orange", marker="o", s=50)
+    plt.scatter(centers[:,0], centers[:,1], color="red", marker="*", s=150)
+
+    plt.title('K-means clustering')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+
+    plt.savefig('kmeans.png')
+
+    return plt
+
+
+    ## DO NOT CHANGE THE FOLLOWING LINE
+    return plt
+
+data_path = 'Assignments_spice_locations.txt'
+K, init_centers = 2, None
+centers, labels, time_taken = kmeans(data_path, K, init_centers)
+print('Time taken for the algorithm to converge:', time_taken)
+visualise(data_path, labels, centers)
