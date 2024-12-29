@@ -1,0 +1,138 @@
+# Importing libraries here
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class LinearRegression:
+    def __init__(self) -> None:
+        '''
+        Constructor for the class
+        Defines member variables weights and bias and initializes them to zero
+        They can be accessed in other functions of the class by using self.weights and self.bias
+        '''
+        self.weights: np.ndarray | None = None
+        self.bias: float | None = None
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        '''
+        Computes the predicted values based on calculated weights and bias given an input array
+        
+        Args:
+            X (np.ndarray): Feature matrix of shape (n_samples, n_features).
+        
+        Returns:
+            An array of predicted values Y_pred (np.ndarray)
+        '''
+        return X @ self.weights + self.bias
+
+    def __loss(self, X: np.ndarray, y: np.ndarray, norm: int) -> tuple:
+        '''
+        The loss function is a variant of Minkowski distance.
+        Minkowski distance between X and Y is defined as:
+            (1 / n) * [sum(abs(xi - yi) ^ p)]
+        Return the loss, and gradients with respect to the weights and bias
+        
+        Args:
+            X_input (np.ndarray): Feature matrix of shape (n_samples, n_features).
+            Y_expected (np.ndarray): Target vector of shape (n_samples,).
+            norm (int): Order of Minkowski distance.
+        
+        Returns:
+            tuple: loss, dw, db
+        '''
+
+        length=len(X)
+        var=self.predict(X)-y
+       
+        loss=np.sum(np.abs(var)**norm) / length
+        a=norm * (var**(norm-1)) / length #derivative of each individual term 
+        dw=np.dot((X.T),a)
+        db=np.sum(a)
+       
+
+        return loss, dw, db
+    
+    def fit(self, X: np.ndarray, y: np.ndarray, epochs: int = 500, learning_rate: float = 0.01, norm: int = 2, threshold: float = 0.0001) -> None:
+        '''
+        Applies gradient descent on the given data and tunes the values of the weights and bias
+
+        Args:
+            X (np.ndarray): Feature matrix of shape (n_samples, n_features).
+            y (np.ndarray): Target vector of shape (n_samples,).
+            epochs (int): Maximum number of iterations of gradient descent.
+            learning_rate (float): Constant which alters the rate of convergence
+            norm (int): Norm for the loss function
+            threshold (float): Stops the gradient descent if the change in loss or cost is below this value
+            lambda_reg (float): Regularization constant (Apply L1 regularization)
+
+        Returns:
+            None
+        '''
+
+        # Initialize weights randomly and set up gradient descent
+        self.weights = np.random.rand(len(X[0]))
+        self.bias = np.random.rand()
+
+        for _ in range(epochs):
+            # Logic for gradient descent (use the loss function to get gradients)
+            p=self.__loss(X, y, norm)
+            self.weights = self.weights - learning_rate*p[1]
+            self.bias = self.bias - learning_rate*p[2]
+            if abs(p[0]-self.__loss(X, y, norm)[0])<threshold:
+                break
+        return None
+    
+# importing the data
+df = pd.read_csv('linear_data.csv')
+
+### TODO 4
+# convert columns from categorical/boolean to integer (use one-hot encoding)
+df['Manual Transmission'] = df['Manual Transmission'].astype(int)   # Converting the 'Manual Transmission' column from boolean to 0/1     pd.get_dummies(df, columns = ['Manual Transmission', 'Fuel'], dtype = int, drop_first=True) is also a method to do this, found this out much later
+df= pd.get_dummies(df, columns=['Fuel'])                         # One-hot encoding the 'Fuel' column
+
+fuel_columns = [col for col in df.columns if col.startswith('Fuel')]   # Getting the columns of one-hot encoded 'Fuel' column
+df[fuel_columns] = df[fuel_columns].astype(int)     # Converting the one-hot encoded columns to int
+
+#print(df.head())
+X, y = df.drop('Estimated Price', axis = 1).to_numpy(), df['Estimated Price'].to_numpy() 
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+def z_score(X: np.ndarray) -> tuple:
+    '''
+    The Z-Score scales data such that its mean is 0 and standard deviation is 1
+    z-score for a value x in the dataset is (x - mean) / std_dev
+    (z-score normalization is done over a feature and NOT an entry)
+    Return the z-score value of all the elements in the set along with the mean and standard deviation of the original set
+    '''
+
+    # Add code here
+    x_mean = np.mean(X, axis = 0)
+    x_std = np.std(X, axis = 0)
+    x = (X - x_mean) / x_std
+    return x, x_mean, x_std
+
+# Normalizing the data
+x_train, x_mean, x_std = z_score(X_train)
+x_test = (X_test - x_mean) / x_std
+
+model = LinearRegression()
+model.fit(x_train, y_train, epochs=1000, learning_rate=0.01, norm=2, threshold=0.0001)
+y_pred = model.predict(x_test)
+print("MSE loss: ", np.mean((y_pred - y_test) ** 2))
+
+indices = np.arange(len(y_test))
+plt.figure(figsize=(10, 6))
+plt.plot(indices, y_test, label='True Values', color='blue', marker='o')
+plt.plot(indices, y_pred, label='Predicted Values', color='red', marker='x')
+
+plt.xlabel('Data Points')
+plt.ylabel('Values')
+plt.title('True vs Predicted Values')
+
+plt.legend()
+plt.grid(True)
+plt.show()
+
