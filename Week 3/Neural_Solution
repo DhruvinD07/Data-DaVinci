@@ -23,7 +23,7 @@ data = next(datagen.flow_from_directory(
 # Split dataset into training and testing
 X_train, X_test, Y_train, Y_test = train_test_split(data[0], data[1], test_size=0.2, random_state=42)
 
-# Define model (SIMPLER version like your friend’s)
+# Define model 
 model = Sequential([
     InputLayer(input_shape=(256, 256, 3)),  # Input layer
     Flatten(),
@@ -32,10 +32,10 @@ model = Sequential([
     Dense(2, activation='softmax')  # Softmax for categorical labels
 ])
 
-# Compile model (Adam optimizer with slightly higher learning rate)
+# Compile model
 model.compile(optimizer=Adam(learning_rate=0.001), loss=CategoricalCrossentropy(), metrics=['accuracy'])
 
-# Train model (LARGER batch size = more stable training)
+# Train model
 model.fit(X_train, Y_train, epochs=10, batch_size=64, validation_data=(X_test, Y_test))
 
 # Evaluate model
